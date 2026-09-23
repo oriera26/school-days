@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Comptador Dies de Cole</title>
+<title>Quan queda de cole?</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -22,11 +22,7 @@
         --btn-bg-hover: rgba(255, 255, 255, 0.20);
     }
 
-    html, body {
-        height: 100%;
-        margin: 0;
-        padding: 0;
-    }
+    html, body { margin: 0; padding: 0; }
 
     body {
         background-color: var(--bg);
@@ -34,11 +30,8 @@
         transition: background-color .5s ease, color .5s ease;
     }
 
-    .font-bebas {
-        font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
-    }
+    .font-bebas { font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; }
 
-    /* ---- Rodet numèric ---- */
     .number-wheel {
         display: inline-flex;
         justify-content: center;
@@ -48,12 +41,10 @@
         vertical-align: baseline;
         position: relative;
     }
-
     .wheel-mask {
         -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
         mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
     }
-
     .number-track {
         display: flex;
         flex-direction: column;
@@ -61,7 +52,6 @@
         transform: translateY(0);
         backface-visibility: hidden;
     }
-
     .number-track > span {
         display: flex;
         align-items: center;
@@ -71,14 +61,12 @@
         flex: 0 0 1em;
     }
 
-    /* ---- Separador : petit i enganxat ---- */
     .colon {
         font-size: 0.22em;
         opacity: 0.5;
         line-height: 1;
         align-self: center;
         user-select: none;
-        /* Els marges laterals són els que defineixen la separació entre grups */
         margin-left: 0.2em;
         margin-right: 0.2em;
         transform: translateY(calc(-1.3vw - 0.25rem));
@@ -91,9 +79,8 @@
         }
     }
 
-    /* ---- Orbe animada ---- */
     .floating-orb {
-        position: absolute;
+        position: fixed;
         top: 0;
         left: 0;
         width: 420px;
@@ -114,22 +101,60 @@
         background-color: var(--btn-bg);
         color: var(--fg);
     }
-    #theme-icon:hover {
-        background-color: var(--btn-bg-hover);
+    #theme-icon:hover { background-color: var(--btn-bg-hover); }
+    #theme-icon svg { display: block; }
+
+    #scroll-section {
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .8s ease;
     }
-    #theme-icon svg {
-        display: block;
+    #scroll-section.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .small-countdown-wrap { font-size: clamp(1.5rem, 2.6vw, 2.4rem); }
+    .small-label {
+        font-size: 0.45rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        opacity: 0.45;
+        margin-top: 0.3rem;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .small-title {
+        font-size: 0.72rem;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        opacity: 0.7;
+        margin-bottom: 0.7rem;
+        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+        font-weight: 700;
+        text-align: center;
+        min-height: 1.2em;
+    }
+    .small-colon {
+        font-size: 0.22em;
+        opacity: 0.5;
+        line-height: 1;
+        align-self: center;
+        user-select: none;
+        margin-left: 0.15em;
+        margin-right: 0.15em;
+        transform: translateY(-0.55rem);
     }
 </style>
 </head>
-<body class="h-screen w-full flex flex-col items-center justify-center select-none overflow-hidden relative">
+<body class="w-full relative">
 
     <div id="glowing-orb" class="floating-orb"></div>
 
-    <!-- Icona tema (sol / lluna) — només visible en moure el cursor -->
     <button id="theme-icon"
             aria-label="Canviar tema"
-            class="fixed top-5 right-5 z-30 p-2 rounded-full backdrop-blur-sm cursor-pointer
+            class="fixed top-5 right-5 z-50 p-2 rounded-full backdrop-blur-sm cursor-pointer
                    transition-opacity duration-500 opacity-0 pointer-events-none">
         <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -145,67 +170,56 @@
         </svg>
     </button>
 
-    <!-- Contenidor principal: sense gap, els marges dels colons governen la separació -->
-    <div id="main-container"
-         class="relative z-10 flex flex-wrap items-center justify-center font-bebas
-                text-[13vw] md:text-[10vw] tracking-tighter leading-none px-4">
+    <div class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center select-none">
+        <div id="main-container"
+             class="flex flex-wrap items-center justify-center font-bebas
+                    text-[13vw] md:text-[10vw] tracking-tighter leading-none px-4 flex-shrink-0">
 
-        <!-- DIES (3 dígits) -->
-        <div class="flex flex-col items-center">
-            <div class="wheel-mask flex items-center justify-center">
-                <div class="number-wheel min-w-[3ch]">
-                    <div class="number-track" id="days-track"></div>
+            <div class="flex flex-col items-center">
+                <div class="wheel-mask flex items-center justify-center">
+                    <div class="number-wheel min-w-[3ch]">
+                        <div class="number-track" id="days-track"></div>
+                    </div>
                 </div>
+                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">DIES</span>
             </div>
-            <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">DIES</span>
-        </div>
 
-        <span class="colon">:</span>
+            <span class="colon">:</span>
 
-        <!-- HORES (2 dígits) -->
-        <div class="flex flex-col items-center">
-            <div class="wheel-mask flex items-center justify-center">
-                <div class="number-wheel min-w-[1ch]">
-                    <div class="number-track" id="hours-tens-track"></div>
+            <div class="flex flex-col items-center">
+                <div class="wheel-mask flex items-center justify-center">
+                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="hours-tens-track"></div></div>
+                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="hours-units-track"></div></div>
                 </div>
-                <div class="number-wheel min-w-[1ch]">
-                    <div class="number-track" id="hours-units-track"></div>
-                </div>
+                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">HORES</span>
             </div>
-            <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">HORES</span>
-        </div>
 
-        <span class="colon">:</span>
+            <span class="colon">:</span>
 
-        <!-- MINUTS (2 dígits) -->
-        <div class="flex flex-col items-center">
-            <div class="wheel-mask flex items-center justify-center">
-                <div class="number-wheel min-w-[1ch]">
-                    <div class="number-track" id="mins-tens-track"></div>
+            <div class="flex flex-col items-center">
+                <div class="wheel-mask flex items-center justify-center">
+                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="mins-tens-track"></div></div>
+                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="mins-units-track"></div></div>
                 </div>
-                <div class="number-wheel min-w-[1ch]">
-                    <div class="number-track" id="mins-units-track"></div>
-                </div>
+                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">MINUTS</span>
             </div>
-            <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">MINUTS</span>
-        </div>
 
-        <span class="colon">:</span>
+            <span class="colon">:</span>
 
-        <!-- SEGONS (2 dígits) -->
-        <div class="flex flex-col items-center">
-            <div class="wheel-mask flex items-center justify-center">
-                <div class="number-wheel min-w-[1ch]">
-                    <div class="number-track" id="secs-tens-track"></div>
+            <div class="flex flex-col items-center">
+                <div class="wheel-mask flex items-center justify-center">
+                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="secs-tens-track"></div></div>
+                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="secs-units-track"></div></div>
                 </div>
-                <div class="number-wheel min-w-[1ch]">
-                    <div class="number-track" id="secs-units-track"></div>
-                </div>
+                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">SEGONS</span>
             </div>
-            <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">SEGONS</span>
-        </div>
 
+        </div>
     </div>
+
+    <section id="scroll-section" class="relative z-10 w-full max-w-6xl mx-auto px-4 pt-16 pb-24">
+        <div id="small-grid" class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-14"></div>
+    </section>
 
 <script>
 (function () {
@@ -227,7 +241,7 @@
     if (!reduceMotion) requestAnimationFrame(animateOrb);
 
     /* =========================================================
-       2. ICONA DE TEMA (sol / lluna)
+       2. ICONA DE TEMA
        ========================================================= */
     var themeIcon = document.getElementById('theme-icon');
     var iconSun   = document.getElementById('icon-sun');
@@ -239,7 +253,6 @@
         iconSun.style.display  = isDark ? 'none'  : 'block';
         iconMoon.style.display = isDark ? 'block' : 'none';
     }
-
     function revealIcon() {
         themeIcon.classList.remove('opacity-0', 'pointer-events-none');
         themeIcon.classList.add('opacity-100');
@@ -249,16 +262,13 @@
             themeIcon.classList.remove('opacity-100');
         }, 2200);
     }
-
     document.addEventListener('mousemove', revealIcon, { passive: true });
     document.addEventListener('touchstart', revealIcon, { passive: true });
-
     themeIcon.addEventListener('click', function () {
         document.body.classList.toggle('alt');
         updateThemeIcon();
         revealIcon();
     });
-
     updateThemeIcon();
 
     /* =========================================================
@@ -282,110 +292,316 @@
         }
         trackEl.innerHTML = html;
     }
-
-    Wheel.prototype._indexOf = function (digit) {
-        return this.maxDigit - digit;
-    };
-
+    Wheel.prototype._indexOf = function (digit) { return this.maxDigit - digit; };
     Wheel.prototype._render = function (animate) {
         this.track.style.transition = animate ? TRANSITION : 'none';
         this.track.style.transform  = 'translateY(' + (-this.pos) + 'em)';
     };
-
     Wheel.prototype.reset = function (digit) {
+        if (digit > this.maxDigit) digit = this.maxDigit;
         this.digit = digit;
         this.pos = (this.repeats >= 2 ? this.L : 0) + this._indexOf(digit);
         this._render(false);
         void this.track.offsetHeight;
     };
-
     Wheel.prototype.set = function (digit, animate) {
+        if (digit > this.maxDigit) digit = this.maxDigit;
         if (digit === this.digit) return;
-        if (!animate || this.digit === null) {
-            this.reset(digit);
-            return;
-        }
-
+        if (!animate || this.digit === null) { this.reset(digit); return; }
         var L = this.L;
         var steps = ((this.digit - digit) % L + L) % L;
         if (steps === 0) return;
-
-        if (steps * 2 > L) {
-            this.reset(digit);
-            return;
-        }
-
+        if (steps * 2 > L) { this.reset(digit); return; }
         var lastIndex = this.repeats * L - 1;
         if (this.repeats >= 3 && this.pos + steps > lastIndex) {
             this.pos -= L * (this.repeats - 2);
             this._render(false);
             void this.track.offsetHeight;
         }
-
-        this.pos   += steps;
-        this.digit  = digit;
+        this.pos += steps;
+        this.digit = digit;
         this._render(true);
     };
 
     /* =========================================================
-       4. COMPTE ENRERE
+       4. COMPTE PRINCIPAL (18 juny 2027, 15:00)
        ========================================================= */
-    // Objectiu: 18 de juny de 2027 a les 15:00 (hora local)
-    var TARGET = new Date(2027, 5, 18, 15, 0, 0).getTime();
+    var MAIN_TARGET = new Date(2027, 5, 18, 15, 0, 0).getTime();
 
     var daysTrackEl = document.getElementById('days-track');
-
     var hTensWheel  = new Wheel(document.getElementById('hours-tens-track'),  2, 6);
     var hUnitsWheel = new Wheel(document.getElementById('hours-units-track'), 9, 4);
     var mTensWheel  = new Wheel(document.getElementById('mins-tens-track'),   5, 6);
     var mUnitsWheel = new Wheel(document.getElementById('mins-units-track'),  9, 4);
     var sTensWheel  = new Wheel(document.getElementById('secs-tens-track'),   5, 6);
     var sUnitsWheel = new Wheel(document.getElementById('secs-units-track'),  9, 4);
-
     var daysWheel = null;
 
-    function update(animate) {
-        var diff = TARGET - Date.now();
-        if (diff < 0) diff = 0;
-
+    function updateMain(animate) {
+        var diff = Math.max(0, MAIN_TARGET - Date.now());
         var totalSeconds = Math.floor(diff / 1000);
-
         var days    = Math.floor(totalSeconds / 86400);
         var hours   = Math.floor((totalSeconds % 86400) / 3600);
         var minutes = Math.floor((totalSeconds % 3600) / 60);
         var seconds = totalSeconds % 60;
 
-        if (!daysWheel) {
-            daysWheel = new Wheel(daysTrackEl, Math.max(days, 0), 1);
-        }
-
+        if (!daysWheel) daysWheel = new Wheel(daysTrackEl, Math.max(days, 0), 1);
         daysWheel.set(days, animate);
 
         hTensWheel.set(Math.floor(hours / 10), animate);
         hUnitsWheel.set(hours % 10, animate);
-
         mTensWheel.set(Math.floor(minutes / 10), animate);
         mUnitsWheel.set(minutes % 10, animate);
-
         sTensWheel.set(Math.floor(seconds / 10), animate);
         sUnitsWheel.set(seconds % 10, animate);
     }
+    updateMain(false);
 
-    update(false);
+    /* =========================================================
+       5. GENERACIÓ AUTOMÀTICA D'ESDEVENIMENTS
+       ========================================================= */
 
-    var stopped = false;
+    function easter(year) {
+        var a = year % 19;
+        var b = Math.floor(year / 100);
+        var c = year % 100;
+        var d = Math.floor(b / 4);
+        var e = b % 4;
+        var f = Math.floor((b + 8) / 25);
+        var g = Math.floor((b - f + 1) / 3);
+        var h = (19 * a + b - d - g + 15) % 30;
+        var i = Math.floor(c / 4);
+        var k = c % 4;
+        var l = (32 + 2 * e + 2 * i - h - k) % 7;
+        var m = Math.floor((a + 11 * h + 22 * l) / 451);
+        var month = Math.floor((h + l - 7 * m + 114) / 31);
+        var day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(year, month - 1, day);
+    }
+    function addDays(date, n) {
+        var d = new Date(date.getTime());
+        d.setDate(d.getDate() + n);
+        return d;
+    }
 
-    function scheduleTick() {
-        if (stopped) return;
+    function generateAllEvents() {
+        var events = [];
+        var idCounter = 0;
+        function push(date, title, cat) {
+            events.push({ id: 'e' + (idCounter++), date: date, title: title, cat: cat });
+        }
+
+        var thisYear = new Date().getFullYear();
+        var startYear = thisYear - 1;
+        var endYear = thisYear + 15;
+
+        for (var y = startYear; y <= endYear; y++) {
+            var e = easter(y);
+
+            /* ----- FESTIUS ----- */
+
+            // Nadal i voltants
+            push(new Date(y, 11, 24), 'Nit de Nadal',                  'festiu');
+            push(new Date(y, 11, 25), 'Nadal',                         'festiu');
+            push(new Date(y, 11, 26), 'Sant Esteve',                   'festiu');
+            push(new Date(y, 11, 31), 'Nit de Cap d\'Any',             'festiu');
+            push(new Date(y + 1, 0, 1), 'Cap d\'Any',                  'festiu');
+            push(new Date(y + 1, 0, 6), 'Dia de Reis',                 'festiu');
+
+            // Hivern / primavera
+            push(addDays(e, -47), 'Carnaval',                          'festiu');
+            push(addDays(e, -3),  'Dijous Sant',                       'festiu');
+            push(addDays(e, -2),  'Divendres Sant',                    'festiu');
+            push(addDays(e, 1),   'Dilluns de Pasqua',                 'festiu');
+
+            // Primavera / estiu
+            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)', 'festiu');
+            push(new Date(y, 5, 23), 'Revetlla de Sant Joan',          'festiu');
+            push(new Date(y, 5, 24), 'Sant Joan',                      'festiu');
+
+            // Tardor
+            push(new Date(y, 8, 11), 'La Diada (11 de Setembre)',      'festiu');
+            push(new Date(y, 8, 24), 'La Mercè',                       'festiu');
+            push(new Date(y, 9, 12), 'El Pilar (12 d\'Octubre)',       'festiu');
+            push(new Date(y, 10, 1), 'Tots Sants',                     'festiu');
+            push(new Date(y, 11, 6), 'Dia de la Constitució',          'festiu');
+            push(new Date(y, 11, 8), 'La Immaculada',                  'festiu');
+
+            /* ----- ESDEVENIMENTS ESCOLARS ----- */
+
+            push(new Date(y, 8, 8), 'Tornada a l\'escola',             'escola');
+
+            var fi1r = new Date(y, 11, 22);
+            push(fi1r,              'Últim dia abans de Nadal',        'escola');
+            push(addDays(fi1r, 1),  'Vacances de Nadal',               'escola');
+
+            var inici2n = new Date(y + 1, 0, 8);
+            push(inici2n,           'Tornada de Nadal',                'escola');
+
+            var palm = addDays(easter(y + 1), -7);
+            var fi2n = addDays(palm, -2);
+            push(fi2n,              'Últim dia abans de Setmana Santa','escola');
+            push(addDays(fi2n, 1),  'Vacances de Setmana Santa',       'escola');
+
+            var inici3r = addDays(easter(y + 1), 2);
+            push(inici3r,           'Tornada de Setmana Santa',        'escola');
+
+            var fiCurs = new Date(y + 1, 5, 20);
+            push(fiCurs,            'Últim dia de classe',             'escola');
+            push(addDays(fiCurs, 1),'Vacances d\'estiu',               'escola');
+        }
+
+        var seen = {};
+        var unique = [];
+        for (var i = 0; i < events.length; i++) {
+            var key = events[i].date.getTime() + '|' + events[i].title;
+            if (!seen[key]) { seen[key] = true; unique.push(events[i]); }
+        }
+        unique.sort(function (a, b) { return a.date - b.date; });
+        return unique;
+    }
+
+    var ALL_EVENTS = generateAllEvents();
+
+    function getNextEvents(count) {
         var now = Date.now();
-        var delay = 1000 - (now % 1000);
+        var result = [];
+        for (var i = 0; i < ALL_EVENTS.length && result.length < count; i++) {
+            if (ALL_EVENTS[i].date.getTime() > now) result.push(ALL_EVENTS[i]);
+        }
+        return result;
+    }
+
+    /* =========================================================
+       6. CONSTRUCCIÓ DE SLOTS
+       ========================================================= */
+    var NUM_SLOTS = 12;
+    var slots = [];
+    var grid = document.getElementById('small-grid');
+
+    function buildGroupHTML(prefix, label, minW, wheels) {
+        var html = '<div class="flex flex-col items-center">';
+        html += '<div class="wheel-mask flex items-center justify-center">';
+        wheels.forEach(function (w) {
+            html += '<div class="number-wheel" style="min-width:' + minW + '">' +
+                    '<div class="number-track" id="' + prefix + '-' + w + '"></div>' +
+                    '</div>';
+        });
+        html += '</div>';
+        html += '<span class="small-label">' + label + '</span>';
+        html += '</div>';
+        return html;
+    }
+
+    function buildSlotHTML(idx) {
+        var p = 'slot-' + idx;
+        return '' +
+            '<h3 id="' + p + '-title" class="small-title"></h3>' +
+            '<div class="small-countdown-wrap font-bebas tracking-tighter flex items-center justify-center">' +
+                buildGroupHTML(p, 'DIES',   '3ch', ['days']) +
+                '<span class="small-colon">:</span>' +
+                buildGroupHTML(p, 'HORES',  '1ch', ['ht','hu']) +
+                '<span class="small-colon">:</span>' +
+                buildGroupHTML(p, 'MINUTS', '1ch', ['mt','mu']) +
+                '<span class="small-colon">:</span>' +
+                buildGroupHTML(p, 'SEGONS', '1ch', ['st','su']) +
+            '</div>';
+    }
+
+    function Slot(idx) {
+        this.idx = idx;
+        var wrapper = document.createElement('div');
+        wrapper.className = 'flex flex-col items-center';
+        wrapper.innerHTML = buildSlotHTML(idx);
+        grid.appendChild(wrapper);
+        this.el = wrapper;
+        this.titleEl = document.getElementById('slot-' + idx + '-title');
+        this.event = null;
+        var p = 'slot-' + idx;
+        this.wheels = {
+            days: new Wheel(document.getElementById(p + '-days'), 999, 1),
+            ht:   new Wheel(document.getElementById(p + '-ht'),   2, 6),
+            hu:   new Wheel(document.getElementById(p + '-hu'),   9, 4),
+            mt:   new Wheel(document.getElementById(p + '-mt'),   5, 6),
+            mu:   new Wheel(document.getElementById(p + '-mu'),   9, 4),
+            st:   new Wheel(document.getElementById(p + '-st'),   5, 6),
+            su:   new Wheel(document.getElementById(p + '-su'),   9, 4)
+        };
+    }
+
+    Slot.prototype.assign = function (newEvent) {
+        if (this.event === newEvent) return false;
+        this.event = newEvent;
+        if (newEvent) {
+            this.titleEl.textContent = newEvent.title;
+            this.el.style.display = '';
+            this._writeWheels(false);
+        } else {
+            this.titleEl.textContent = '';
+            this.el.style.display = 'none';
+        }
+        return true;
+    };
+
+    Slot.prototype._writeWheels = function (animate) {
+        if (!this.event) return;
+        var diff = Math.max(0, this.event.date.getTime() - Date.now());
+        var totalSeconds = Math.floor(diff / 1000);
+        var days    = Math.min(Math.floor(totalSeconds / 86400), 999);
+        var hours   = Math.floor((totalSeconds % 86400) / 3600);
+        var minutes = Math.floor((totalSeconds % 3600) / 60);
+        var seconds = totalSeconds % 60;
+
+        this.wheels.days.set(days, animate);
+        this.wheels.ht.set(Math.floor(hours / 10), animate);
+        this.wheels.hu.set(hours % 10, animate);
+        this.wheels.mt.set(Math.floor(minutes / 10), animate);
+        this.wheels.mu.set(minutes % 10, animate);
+        this.wheels.st.set(Math.floor(seconds / 10), animate);
+        this.wheels.su.set(seconds % 10, animate);
+    };
+
+    Slot.prototype.tick = function (animate) {
+        this._writeWheels(animate);
+    };
+
+    for (var i = 0; i < NUM_SLOTS; i++) slots.push(new Slot(i));
+
+    function refreshSlots(animate) {
+        var next = getNextEvents(NUM_SLOTS);
+        for (var i = 0; i < NUM_SLOTS; i++) {
+            var ev = next[i] || null;
+            slots[i].assign(ev);
+            if (ev) slots[i].tick(animate);
+        }
+    }
+
+    refreshSlots(false);
+
+    /* =========================================================
+       7. MOSTRAR LA SECCIÓ EN FER SCROLL
+       ========================================================= */
+    var scrollSection = document.getElementById('scroll-section');
+    function checkScroll() {
+        var rect = scrollSection.getBoundingClientRect();
+        if (rect.top < window.innerHeight * 0.9) {
+            scrollSection.classList.add('visible');
+        } else {
+            scrollSection.classList.remove('visible');
+        }
+    }
+    window.addEventListener('scroll', checkScroll, { passive: true });
+    window.addEventListener('resize', checkScroll, { passive: true });
+    checkScroll();
+
+    /* =========================================================
+       8. BUCLE D'ACTUALITZACIÓ
+       ========================================================= */
+    function scheduleTick() {
+        var delay = 1000 - (Date.now() % 1000);
         setTimeout(function () {
-            if (TARGET - Date.now() <= 0) {
-                update(true);
-                stopped = true;
-                return;
-            }
-            update(true);
+            updateMain(true);
+            refreshSlots(true);
             scheduleTick();
         }, delay);
     }
