@@ -32,6 +32,7 @@
 
     .font-bebas { font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; }
 
+    /* ---- Rodet numèric: EXACTAMENT com l'original que funcionava ---- */
     .number-wheel {
         display: inline-flex;
         justify-content: center;
@@ -40,17 +41,19 @@
         line-height: 1em;
         vertical-align: baseline;
         position: relative;
+        flex-shrink: 0;
     }
     .wheel-mask {
         -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
         mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+        flex-shrink: 0;
     }
     .number-track {
         display: flex;
         flex-direction: column;
         will-change: transform;
-        transform: translateY(0);
         backface-visibility: hidden;
+        flex-shrink: 0;
     }
     .number-track > span {
         display: flex;
@@ -61,24 +64,32 @@
         flex: 0 0 1em;
     }
 
+    /* ---- Separador : principal ---- */
     .colon {
         font-size: 0.22em;
         opacity: 0.5;
         line-height: 1;
         align-self: center;
         user-select: none;
-        margin-left: 0.2em;
-        margin-right: 0.2em;
+        margin-left: 0.35em;
+        margin-right: 0.35em;
         transform: translateY(calc(-1.3vw - 0.25rem));
     }
     @media (min-width: 768px) {
         .colon {
-            margin-left: 0.25em;
-            margin-right: 0.25em;
+            margin-left: 0.45em;
+            margin-right: 0.45em;
             transform: translateY(calc(-0.6vw - 0.25rem));
         }
     }
 
+    /* Marge i espaiat exclusiu per als números grans de dalt */
+    #main-container .number-wheel {
+        padding: 0 0.06em;
+        margin: 0 0.02em;
+    }
+
+    /* ---- Orbe animada ---- */
     .floating-orb {
         position: fixed;
         top: 0;
@@ -173,11 +184,11 @@
     <div class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center select-none">
         <div id="main-container"
              class="flex flex-wrap items-center justify-center font-bebas
-                    text-[13vw] md:text-[10vw] tracking-tighter leading-none px-4 flex-shrink-0">
+                    text-[13vw] md:text-[10vw] tracking-normal leading-none px-4 flex-shrink-0">
 
-            <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center flex-shrink-0">
                 <div class="wheel-mask flex items-center justify-center">
-                    <div class="number-wheel min-w-[3ch]">
+                    <div class="number-wheel">
                         <div class="number-track" id="days-track"></div>
                     </div>
                 </div>
@@ -186,30 +197,30 @@
 
             <span class="colon">:</span>
 
-            <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center flex-shrink-0">
                 <div class="wheel-mask flex items-center justify-center">
-                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="hours-tens-track"></div></div>
-                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="hours-units-track"></div></div>
+                    <div class="number-wheel"><div class="number-track" id="hours-tens-track"></div></div>
+                    <div class="number-wheel"><div class="number-track" id="hours-units-track"></div></div>
                 </div>
                 <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">HORES</span>
             </div>
 
             <span class="colon">:</span>
 
-            <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center flex-shrink-0">
                 <div class="wheel-mask flex items-center justify-center">
-                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="mins-tens-track"></div></div>
-                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="mins-units-track"></div></div>
+                    <div class="number-wheel"><div class="number-track" id="mins-tens-track"></div></div>
+                    <div class="number-wheel"><div class="number-track" id="mins-units-track"></div></div>
                 </div>
                 <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">MINUTS</span>
             </div>
 
             <span class="colon">:</span>
 
-            <div class="flex flex-col items-center">
+            <div class="flex flex-col items-center flex-shrink-0">
                 <div class="wheel-mask flex items-center justify-center">
-                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="secs-tens-track"></div></div>
-                    <div class="number-wheel min-w-[1ch]"><div class="number-track" id="secs-units-track"></div></div>
+                    <div class="number-wheel"><div class="number-track" id="secs-tens-track"></div></div>
+                    <div class="number-wheel"><div class="number-track" id="secs-units-track"></div></div>
                 </div>
                 <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">SEGONS</span>
             </div>
@@ -225,20 +236,23 @@
 (function () {
     'use strict';
 
-    /* =========================================================
-       1. ORBE ANIMADA
-       ========================================================= */
-    var orb = document.getElementById('glowing-orb');
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+    /* =========================================================
+       1. ORBE ANIMADA (pausa si pestanya oculta)
+       ========================================================= */
+    var orb = document.getElementById('glowing-orb');
+    var orbRunning = !reduceMotion;
+
     function animateOrb() {
+        if (!orbRunning) return;
         var t = Date.now() * 0.0006;
         var x = window.innerWidth  / 2 + Math.sin(t * 0.8) * window.innerWidth  * 0.38;
         var y = window.innerHeight / 2 + Math.cos(t * 0.5) * window.innerHeight * 0.32;
         orb.style.transform = 'translate3d(' + (x - 210) + 'px,' + (y - 210) + 'px,0)';
         requestAnimationFrame(animateOrb);
     }
-    if (!reduceMotion) requestAnimationFrame(animateOrb);
+    if (orbRunning) requestAnimationFrame(animateOrb);
 
     /* =========================================================
        2. ICONA DE TEMA
@@ -360,7 +374,6 @@
     /* =========================================================
        5. GENERACIÓ AUTOMÀTICA D'ESDEVENIMENTS
        ========================================================= */
-
     function easter(year) {
         var a = year % 19;
         var b = Math.floor(year / 100);
@@ -387,8 +400,8 @@
     function generateAllEvents() {
         var events = [];
         var idCounter = 0;
-        function push(date, title, cat) {
-            events.push({ id: 'e' + (idCounter++), date: date, title: title, cat: cat });
+        function push(date, title) {
+            events.push({ id: 'e' + (idCounter++), date: date, title: title });
         }
 
         var thisYear = new Date().getFullYear();
@@ -398,57 +411,47 @@
         for (var y = startYear; y <= endYear; y++) {
             var e = easter(y);
 
-            /* ----- FESTIUS ----- */
+            push(new Date(y, 11, 24), 'Nit de Nadal');
+            push(new Date(y, 11, 25), 'Nadal');
+            push(new Date(y, 11, 26), 'Sant Esteve');
+            push(new Date(y, 11, 31), 'Nit de Cap d\'Any');
+            push(new Date(y + 1, 0, 1), 'Cap d\'Any');
+            push(new Date(y + 1, 0, 6), 'Dia de Reis');
 
-            // Nadal i voltants
-            push(new Date(y, 11, 24), 'Nit de Nadal',                  'festiu');
-            push(new Date(y, 11, 25), 'Nadal',                         'festiu');
-            push(new Date(y, 11, 26), 'Sant Esteve',                   'festiu');
-            push(new Date(y, 11, 31), 'Nit de Cap d\'Any',             'festiu');
-            push(new Date(y + 1, 0, 1), 'Cap d\'Any',                  'festiu');
-            push(new Date(y + 1, 0, 6), 'Dia de Reis',                 'festiu');
+            push(addDays(e, -47), 'Carnaval');
+            push(addDays(e, -3),  'Dijous Sant');
+            push(addDays(e, -2),  'Divendres Sant');
+            push(addDays(e, 1),   'Dilluns de Pasqua');
 
-            // Hivern / primavera
-            push(addDays(e, -47), 'Carnaval',                          'festiu');
-            push(addDays(e, -3),  'Dijous Sant',                       'festiu');
-            push(addDays(e, -2),  'Divendres Sant',                    'festiu');
-            push(addDays(e, 1),   'Dilluns de Pasqua',                 'festiu');
+            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)');
+            push(new Date(y, 5, 23), 'Revetlla de Sant Joan');
+            push(new Date(y, 5, 24), 'Sant Joan');
 
-            // Primavera / estiu
-            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)', 'festiu');
-            push(new Date(y, 5, 23), 'Revetlla de Sant Joan',          'festiu');
-            push(new Date(y, 5, 24), 'Sant Joan',                      'festiu');
+            push(new Date(y, 8, 11), 'La Diada (11 de Setembre)');
+            push(new Date(y, 8, 24), 'La Mercè');
+            push(new Date(y, 9, 12), 'El Pilar (12 d\'Octubre)');
+            push(new Date(y, 10, 1), 'Tots Sants');
+            push(new Date(y, 11, 6), 'Dia de la Constitució');
+            push(new Date(y, 11, 8), 'La Immaculada');
 
-            // Tardor
-            push(new Date(y, 8, 11), 'La Diada (11 de Setembre)',      'festiu');
-            push(new Date(y, 8, 24), 'La Mercè',                       'festiu');
-            push(new Date(y, 9, 12), 'El Pilar (12 d\'Octubre)',       'festiu');
-            push(new Date(y, 10, 1), 'Tots Sants',                     'festiu');
-            push(new Date(y, 11, 6), 'Dia de la Constitució',          'festiu');
-            push(new Date(y, 11, 8), 'La Immaculada',                  'festiu');
-
-            /* ----- ESDEVENIMENTS ESCOLARS ----- */
-
-            push(new Date(y, 8, 8), 'Tornada a l\'escola',             'escola');
+            push(new Date(y, 8, 8), 'Tornada a l\'escola');
 
             var fi1r = new Date(y, 11, 22);
-            push(fi1r,              'Últim dia abans de Nadal',        'escola');
-            push(addDays(fi1r, 1),  'Vacances de Nadal',               'escola');
+            push(fi1r,              'Últim dia abans de Nadal');
+            push(addDays(fi1r, 1),  'Vacances de Nadal');
 
-            var inici2n = new Date(y + 1, 0, 8);
-            push(inici2n,           'Tornada de Nadal',                'escola');
+            push(new Date(y + 1, 0, 8), 'Tornada de Nadal');
 
             var palm = addDays(easter(y + 1), -7);
             var fi2n = addDays(palm, -2);
-            push(fi2n,              'Últim dia abans de Setmana Santa','escola');
-            push(addDays(fi2n, 1),  'Vacances de Setmana Santa',       'escola');
+            push(fi2n,              'Últim dia abans de Setmana Santa');
+            push(addDays(fi2n, 1),  'Vacances de Setmana Santa');
 
-            var inici3r = addDays(easter(y + 1), 2);
-            push(inici3r,           'Tornada de Setmana Santa',        'escola');
+            push(addDays(easter(y + 1), 2), 'Tornada de Setmana Santa');
 
             var fiCurs = new Date(y + 1, 5, 20);
-            push(fiCurs,            'Últim dia de classe',             'escola');
-            push(addDays(fiCurs, 1),'Vacances d\'estiu',               'escola');
+            push(fiCurs,            'Últim dia de classe');
+            push(addDays(fiCurs, 1),'Vacances d\'estiu');
         }
 
         var seen = {};
@@ -463,7 +466,10 @@
 
     var ALL_EVENTS = generateAllEvents();
 
-    function getNextEvents(count) {
+    var cachedNext = null;
+    var cachedNextFirstTime = 0;
+
+    function computeNext(count) {
         var now = Date.now();
         var result = [];
         for (var i = 0; i < ALL_EVENTS.length && result.length < count; i++) {
@@ -472,18 +478,30 @@
         return result;
     }
 
+    function getNextEvents(count) {
+        var now = Date.now();
+        if (cachedNext && cachedNextFirstTime > now && cachedNext.length >= count) {
+            return cachedNext;
+        }
+        cachedNext = computeNext(count);
+        cachedNextFirstTime = cachedNext.length
+            ? cachedNext[0].date.getTime()
+            : now + 3600000;
+        return cachedNext;
+    }
+
     /* =========================================================
-       6. CONSTRUCCIÓ DE SLOTS
+       6. CONSTRUCCIÓ DE SLOTS (Amb reparació d'alineació de DIES)
        ========================================================= */
     var NUM_SLOTS = 12;
     var slots = [];
     var grid = document.getElementById('small-grid');
 
-    function buildGroupHTML(prefix, label, minW, wheels) {
-        var html = '<div class="flex flex-col items-center">';
+    function buildGroupHTML(prefix, label, wheels) {
+        var html = '<div class="flex flex-col items-center flex-shrink-0">';
         html += '<div class="wheel-mask flex items-center justify-center">';
         wheels.forEach(function (w) {
-            html += '<div class="number-wheel" style="min-width:' + minW + '">' +
+            html += '<div class="number-wheel">' +
                     '<div class="number-track" id="' + prefix + '-' + w + '"></div>' +
                     '</div>';
         });
@@ -498,34 +516,37 @@
         return '' +
             '<h3 id="' + p + '-title" class="small-title"></h3>' +
             '<div class="small-countdown-wrap font-bebas tracking-tighter flex items-center justify-center">' +
-                buildGroupHTML(p, 'DIES',   '3ch', ['days']) +
+                buildGroupHTML(p, 'DIES',   ['days']) +
                 '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, 'HORES',  '1ch', ['ht','hu']) +
+                buildGroupHTML(p, 'HORES',  ['ht','hu']) +
                 '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, 'MINUTS', '1ch', ['mt','mu']) +
+                buildGroupHTML(p, 'MINUTS', ['mt','mu']) +
                 '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, 'SEGONS', '1ch', ['st','su']) +
+                buildGroupHTML(p, 'SEGONS', ['st','su']) +
             '</div>';
     }
 
     function Slot(idx) {
         this.idx = idx;
+        this.p = 'slot-' + idx;
         var wrapper = document.createElement('div');
-        wrapper.className = 'flex flex-col items-center';
+        wrapper.className = 'flex flex-col items-center w-full';
         wrapper.innerHTML = buildSlotHTML(idx);
         grid.appendChild(wrapper);
         this.el = wrapper;
-        this.titleEl = document.getElementById('slot-' + idx + '-title');
+        this.titleEl = document.getElementById(this.p + '-title');
         this.event = null;
-        var p = 'slot-' + idx;
+        
         this.wheels = {
-            days: new Wheel(document.getElementById(p + '-days'), 999, 1),
-            ht:   new Wheel(document.getElementById(p + '-ht'),   2, 6),
-            hu:   new Wheel(document.getElementById(p + '-hu'),   9, 4),
-            mt:   new Wheel(document.getElementById(p + '-mt'),   5, 6),
-            mu:   new Wheel(document.getElementById(p + '-mu'),   9, 4),
-            st:   new Wheel(document.getElementById(p + '-st'),   5, 6),
-            su:   new Wheel(document.getElementById(p + '-su'),   9, 4)
+            // FIX: No inicialitzem 'days' amb 999. Es crearà a l'assign() 
+            // depenent dels dígits reals per evitar marges buits enormes.
+            days: null,
+            ht:   new Wheel(document.getElementById(this.p + '-ht'),   2, 6),
+            hu:   new Wheel(document.getElementById(this.p + '-hu'),   9, 4),
+            mt:   new Wheel(document.getElementById(this.p + '-mt'),   5, 6),
+            mu:   new Wheel(document.getElementById(this.p + '-mu'),   9, 4),
+            st:   new Wheel(document.getElementById(this.p + '-st'),   5, 6),
+            su:   new Wheel(document.getElementById(this.p + '-su'),   9, 4)
         };
     }
 
@@ -535,6 +556,15 @@
         if (newEvent) {
             this.titleEl.textContent = newEvent.title;
             this.el.style.display = '';
+            
+            // FIX d'alineació: Calculem els dies exactes en el moment d'assignar.
+            // Això crea un calaix d'amplada justa (ex: si falten 5 dies fa un caixó d'1 xifra;
+            // si en falten 120, en fa un de 3). Abans pre-ocupava sempre espai per a 3 ("999"), desquadrant-ho tot.
+            var diff = Math.max(0, this.event.date.getTime() - Date.now());
+            var totalSeconds = Math.floor(diff / 1000);
+            var days = Math.min(Math.floor(totalSeconds / 86400), 999);
+            this.wheels.days = new Wheel(document.getElementById(this.p + '-days'), Math.max(days, 0), 1);
+            
             this._writeWheels(false);
         } else {
             this.titleEl.textContent = '';
@@ -552,7 +582,8 @@
         var minutes = Math.floor((totalSeconds % 3600) / 60);
         var seconds = totalSeconds % 60;
 
-        this.wheels.days.set(days, animate);
+        if (this.wheels.days) this.wheels.days.set(days, animate);
+        
         this.wheels.ht.set(Math.floor(hours / 10), animate);
         this.wheels.hu.set(hours % 10, animate);
         this.wheels.mt.set(Math.floor(minutes / 10), animate);
@@ -582,12 +613,15 @@
        7. MOSTRAR LA SECCIÓ EN FER SCROLL
        ========================================================= */
     var scrollSection = document.getElementById('scroll-section');
+    var sectionVisible = false;
+
     function checkScroll() {
         var rect = scrollSection.getBoundingClientRect();
-        if (rect.top < window.innerHeight * 0.9) {
-            scrollSection.classList.add('visible');
-        } else {
-            scrollSection.classList.remove('visible');
+        var isVis = rect.top < window.innerHeight * 0.9;
+        if (isVis !== sectionVisible) {
+            sectionVisible = isVis;
+            scrollSection.classList.toggle('visible', isVis);
+            if (isVis) refreshSlots(false);
         }
     }
     window.addEventListener('scroll', checkScroll, { passive: true });
@@ -597,15 +631,32 @@
     /* =========================================================
        8. BUCLE D'ACTUALITZACIÓ
        ========================================================= */
+    var tickTimer = null;
+
     function scheduleTick() {
+        if (tickTimer) return;
         var delay = 1000 - (Date.now() % 1000);
-        setTimeout(function () {
+        tickTimer = setTimeout(function () {
+            tickTimer = null;
             updateMain(true);
-            refreshSlots(true);
+            if (sectionVisible) refreshSlots(true);
             scheduleTick();
         }, delay);
     }
     scheduleTick();
+
+    document.addEventListener('visibilitychange', function () {
+        orbRunning = !document.hidden && !reduceMotion;
+        if (orbRunning) requestAnimationFrame(animateOrb);
+
+        if (document.hidden) {
+            if (tickTimer) { clearTimeout(tickTimer); tickTimer = null; }
+        } else {
+            updateMain(true);
+            if (sectionVisible) refreshSlots(true);
+            scheduleTick();
+        }
+    });
 
 })();
 </script>
