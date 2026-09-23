@@ -32,16 +32,17 @@
 
     .font-bebas { font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; }
 
-    /* ---- Rodet numèric: EXACTAMENT com l'original que funcionava ---- */
     .number-wheel {
         display: inline-flex;
         justify-content: center;
+        align-items: flex-start;
         overflow: hidden;
         height: 1em;
         line-height: 1em;
         vertical-align: baseline;
         position: relative;
         flex-shrink: 0;
+        transition: width .2s ease;
     }
     .wheel-mask {
         -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
@@ -51,45 +52,39 @@
     .number-track {
         display: flex;
         flex-direction: column;
-        will-change: transform;
-        backface-visibility: hidden;
         flex-shrink: 0;
+        backface-visibility: hidden;
     }
     .number-track > span {
         display: flex;
         align-items: center;
         justify-content: center;
         height: 1em;
+        min-height: 1em;
+        max-height: 1em;
         line-height: 1em;
         flex: 0 0 1em;
+        white-space: nowrap;
     }
 
-    /* ---- Separador : principal ---- */
     .colon {
         font-size: 0.22em;
         opacity: 0.5;
         line-height: 1;
         align-self: center;
         user-select: none;
-        margin-left: 0.35em;
-        margin-right: 0.35em;
+        margin-left: 0.2em;
+        margin-right: 0.2em;
         transform: translateY(calc(-1.3vw - 0.25rem));
     }
     @media (min-width: 768px) {
         .colon {
-            margin-left: 0.45em;
-            margin-right: 0.45em;
+            margin-left: 0.25em;
+            margin-right: 0.25em;
             transform: translateY(calc(-0.6vw - 0.25rem));
         }
     }
 
-    /* Marge i espaiat exclusiu per als números grans de dalt */
-    #main-container .number-wheel {
-        padding: 0 0.06em;
-        margin: 0 0.02em;
-    }
-
-    /* ---- Orbe animada ---- */
     .floating-orb {
         position: fixed;
         top: 0;
@@ -125,16 +120,15 @@
         pointer-events: auto;
     }
 
-    .small-countdown-wrap { font-size: clamp(1.5rem, 2.6vw, 2.4rem); }
-    .small-label {
-        font-size: 0.45rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        opacity: 0.45;
-        margin-top: 0.3rem;
-        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-        font-weight: 700;
-        white-space: nowrap;
+    .small-countdown-wrap {
+        font-size: clamp(1.5rem, 2.6vw, 2.4rem);
+    }
+    .small-group {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex-shrink: 0;
     }
     .small-title {
         font-size: 0.72rem;
@@ -147,15 +141,16 @@
         text-align: center;
         min-height: 1.2em;
     }
+    /* Colon petit: més gran i centrat amb els dígits */
     .small-colon {
-        font-size: 0.22em;
-        opacity: 0.5;
+        font-size: 0.5em;
+        opacity: 0.55;
         line-height: 1;
         align-self: center;
         user-select: none;
-        margin-left: 0.15em;
-        margin-right: 0.15em;
-        transform: translateY(-0.55rem);
+        margin-left: 0.2em;
+        margin-right: 0.2em;
+        transform: translateY(-0.05em);
     }
 </style>
 </head>
@@ -184,7 +179,7 @@
     <div class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center select-none">
         <div id="main-container"
              class="flex flex-wrap items-center justify-center font-bebas
-                    text-[13vw] md:text-[10vw] tracking-normal leading-none px-4 flex-shrink-0">
+                    text-[13vw] md:text-[10vw] tracking-tighter leading-none px-4 flex-shrink-0">
 
             <div class="flex flex-col items-center flex-shrink-0">
                 <div class="wheel-mask flex items-center justify-center">
@@ -237,10 +232,8 @@
     'use strict';
 
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var allWheels = [];
 
-    /* =========================================================
-       1. ORBE ANIMADA (pausa si pestanya oculta)
-       ========================================================= */
     var orb = document.getElementById('glowing-orb');
     var orbRunning = !reduceMotion;
 
@@ -254,9 +247,6 @@
     }
     if (orbRunning) requestAnimationFrame(animateOrb);
 
-    /* =========================================================
-       2. ICONA DE TEMA
-       ========================================================= */
     var themeIcon = document.getElementById('theme-icon');
     var iconSun   = document.getElementById('icon-sun');
     var iconMoon  = document.getElementById('icon-moon');
@@ -285,18 +275,31 @@
     });
     updateThemeIcon();
 
-    /* =========================================================
-       3. RODET NUMÈRIC INFINIT
-       ========================================================= */
     var TRANSITION = 'transform .55s cubic-bezier(.22, 1, .36, 1)';
+    var digitWidthCache = {};
+    var measureCanvas = document.createElement('canvas');
+    var measureCtx = measureCanvas.getContext('2d');
+
+    function measureDigit(digit, fontSize) {
+        var key = digit + '@' + fontSize.toFixed(2);
+        var w = digitWidthCache[key];
+        if (w !== undefined) return w;
+        measureCtx.font = '400 ' + fontSize + 'px "Bebas Neue", "Arial Narrow", sans-serif';
+        w = measureCtx.measureText(String(digit)).width;
+        digitWidthCache[key] = w;
+        return w;
+    }
 
     function Wheel(trackEl, maxDigit, repeats) {
         this.track     = trackEl;
         this.maxDigit  = maxDigit;
         this.L         = maxDigit + 1;
         this.repeats   = repeats || 4;
+        this.total     = this.L * this.repeats;
         this.pos       = 0;
         this.digit     = null;
+        this.step      = 0;
+        this.wheelEl   = trackEl.parentElement;
 
         var html = '';
         for (var r = 0; r < this.repeats; r++) {
@@ -305,28 +308,56 @@
             }
         }
         trackEl.innerHTML = html;
+
+        allWheels.push(this);
     }
+
     Wheel.prototype._indexOf = function (digit) { return this.maxDigit - digit; };
+
+    Wheel.prototype._measure = function () {
+        var fs = parseFloat(window.getComputedStyle(this.track).fontSize);
+        this.step = (isFinite(fs) && fs > 0) ? fs : 16;
+    };
+
+    Wheel.prototype._fitWidth = function () {
+        if (this.digit === null) return;
+        var w = measureDigit(this.digit, this.step);
+        this.wheelEl.style.width = w + 'px';
+    };
+
     Wheel.prototype._render = function (animate) {
         this.track.style.transition = animate ? TRANSITION : 'none';
-        this.track.style.transform  = 'translateY(' + (-this.pos) + 'em)';
+        if (!this.step) this._measure();
+        this.track.style.transform =
+            'translate3d(0,' + (-this.pos * this.step) + 'px,0)';
     };
+
+    Wheel.prototype.remeasure = function () {
+        this._measure();
+        this._render(false);
+        this._fitWidth();
+    };
+
     Wheel.prototype.reset = function (digit) {
         if (digit > this.maxDigit) digit = this.maxDigit;
+        if (digit < 0) digit = 0;
         this.digit = digit;
         this.pos = (this.repeats >= 2 ? this.L : 0) + this._indexOf(digit);
         this._render(false);
+        this._fitWidth();
         void this.track.offsetHeight;
     };
+
     Wheel.prototype.set = function (digit, animate) {
         if (digit > this.maxDigit) digit = this.maxDigit;
+        if (digit < 0) digit = 0;
         if (digit === this.digit) return;
         if (!animate || this.digit === null) { this.reset(digit); return; }
         var L = this.L;
         var steps = ((this.digit - digit) % L + L) % L;
         if (steps === 0) return;
         if (steps * 2 > L) { this.reset(digit); return; }
-        var lastIndex = this.repeats * L - 1;
+        var lastIndex = this.total - 1;
         if (this.repeats >= 3 && this.pos + steps > lastIndex) {
             this.pos -= L * (this.repeats - 2);
             this._render(false);
@@ -335,11 +366,18 @@
         this.pos += steps;
         this.digit = digit;
         this._render(true);
+        this._fitWidth();
     };
 
-    /* =========================================================
-       4. COMPTE PRINCIPAL (18 juny 2027, 15:00)
-       ========================================================= */
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+        if (resizeTimer) clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function () {
+            digitWidthCache = {};
+            for (var i = 0; i < allWheels.length; i++) allWheels[i].remeasure();
+        }, 120);
+    }, { passive: true });
+
     var MAIN_TARGET = new Date(2027, 5, 18, 15, 0, 0).getTime();
 
     var daysTrackEl = document.getElementById('days-track');
@@ -371,9 +409,6 @@
     }
     updateMain(false);
 
-    /* =========================================================
-       5. GENERACIÓ AUTOMÀTICA D'ESDEVENIMENTS
-       ========================================================= */
     function easter(year) {
         var a = year % 19;
         var b = Math.floor(year / 100);
@@ -411,22 +446,6 @@
         for (var y = startYear; y <= endYear; y++) {
             var e = easter(y);
 
-            push(new Date(y, 11, 24), 'Nit de Nadal');
-            push(new Date(y, 11, 25), 'Nadal');
-            push(new Date(y, 11, 26), 'Sant Esteve');
-            push(new Date(y, 11, 31), 'Nit de Cap d\'Any');
-            push(new Date(y + 1, 0, 1), 'Cap d\'Any');
-            push(new Date(y + 1, 0, 6), 'Dia de Reis');
-
-            push(addDays(e, -47), 'Carnaval');
-            push(addDays(e, -3),  'Dijous Sant');
-            push(addDays(e, -2),  'Divendres Sant');
-            push(addDays(e, 1),   'Dilluns de Pasqua');
-
-            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)');
-            push(new Date(y, 5, 23), 'Revetlla de Sant Joan');
-            push(new Date(y, 5, 24), 'Sant Joan');
-
             push(new Date(y, 8, 11), 'La Diada (11 de Setembre)');
             push(new Date(y, 8, 24), 'La Mercè');
             push(new Date(y, 9, 12), 'El Pilar (12 d\'Octubre)');
@@ -434,21 +453,35 @@
             push(new Date(y, 11, 6), 'Dia de la Constitució');
             push(new Date(y, 11, 8), 'La Immaculada');
 
-            push(new Date(y, 8, 8), 'Tornada a l\'escola');
+            push(new Date(y + 1, 0, 1), 'Cap d\'Any');
+            push(new Date(y + 1, 0, 6), 'Dia de Reis');
+            push(addDays(e, -47), 'Carnaval');
+            push(addDays(e, -3),  'Dijous Sant');
+            push(addDays(e, -2),  'Divendres Sant');
 
+            push(addDays(e, 1),   'Dilluns de Pasqua');
+            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)');
+            push(addDays(e, 50),  '2a Pasqua (Pentecosta)');
+            push(new Date(y, 5, 23), 'Revetlla de Sant Joan');
+            push(new Date(y, 5, 24), 'Sant Joan');
+
+            push(new Date(y, 11, 24), 'Nit de Nadal');
+            push(new Date(y, 11, 25), 'Nadal');
+            push(new Date(y, 11, 26), 'Sant Esteve');
+            push(new Date(y, 11, 31), 'Nit de Cap d\'Any');
+
+            push(new Date(y, 8, 8), 'Tornada a l\'escola');
             var fi1r = new Date(y, 11, 22);
             push(fi1r,              'Últim dia abans de Nadal');
             push(addDays(fi1r, 1),  'Vacances de Nadal');
 
             push(new Date(y + 1, 0, 8), 'Tornada de Nadal');
-
             var palm = addDays(easter(y + 1), -7);
             var fi2n = addDays(palm, -2);
             push(fi2n,              'Últim dia abans de Setmana Santa');
             push(addDays(fi2n, 1),  'Vacances de Setmana Santa');
 
             push(addDays(easter(y + 1), 2), 'Tornada de Setmana Santa');
-
             var fiCurs = new Date(y + 1, 5, 20);
             push(fiCurs,            'Últim dia de classe');
             push(addDays(fiCurs, 1),'Vacances d\'estiu');
@@ -490,15 +523,12 @@
         return cachedNext;
     }
 
-    /* =========================================================
-       6. CONSTRUCCIÓ DE SLOTS (Amb reparació d'alineació de DIES)
-       ========================================================= */
     var NUM_SLOTS = 12;
     var slots = [];
     var grid = document.getElementById('small-grid');
 
-    function buildGroupHTML(prefix, label, wheels) {
-        var html = '<div class="flex flex-col items-center flex-shrink-0">';
+    function buildGroupHTML(prefix, wheels) {
+        var html = '<div class="small-group">';
         html += '<div class="wheel-mask flex items-center justify-center">';
         wheels.forEach(function (w) {
             html += '<div class="number-wheel">' +
@@ -506,7 +536,6 @@
                     '</div>';
         });
         html += '</div>';
-        html += '<span class="small-label">' + label + '</span>';
         html += '</div>';
         return html;
     }
@@ -516,37 +545,36 @@
         return '' +
             '<h3 id="' + p + '-title" class="small-title"></h3>' +
             '<div class="small-countdown-wrap font-bebas tracking-tighter flex items-center justify-center">' +
-                buildGroupHTML(p, 'DIES',   ['days']) +
+                buildGroupHTML(p, ['daysH','daysT','daysU']) +
                 '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, 'HORES',  ['ht','hu']) +
+                buildGroupHTML(p, ['ht','hu']) +
                 '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, 'MINUTS', ['mt','mu']) +
+                buildGroupHTML(p, ['mt','mu']) +
                 '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, 'SEGONS', ['st','su']) +
+                buildGroupHTML(p, ['st','su']) +
             '</div>';
     }
 
     function Slot(idx) {
         this.idx = idx;
-        this.p = 'slot-' + idx;
         var wrapper = document.createElement('div');
-        wrapper.className = 'flex flex-col items-center w-full';
+        wrapper.className = 'flex flex-col items-center';
         wrapper.innerHTML = buildSlotHTML(idx);
         grid.appendChild(wrapper);
         this.el = wrapper;
-        this.titleEl = document.getElementById(this.p + '-title');
+        this.titleEl = document.getElementById('slot-' + idx + '-title');
         this.event = null;
-        
+        var p = 'slot-' + idx;
         this.wheels = {
-            // FIX: No inicialitzem 'days' amb 999. Es crearà a l'assign() 
-            // depenent dels dígits reals per evitar marges buits enormes.
-            days: null,
-            ht:   new Wheel(document.getElementById(this.p + '-ht'),   2, 6),
-            hu:   new Wheel(document.getElementById(this.p + '-hu'),   9, 4),
-            mt:   new Wheel(document.getElementById(this.p + '-mt'),   5, 6),
-            mu:   new Wheel(document.getElementById(this.p + '-mu'),   9, 4),
-            st:   new Wheel(document.getElementById(this.p + '-st'),   5, 6),
-            su:   new Wheel(document.getElementById(this.p + '-su'),   9, 4)
+            daysH: new Wheel(document.getElementById(p + '-daysH'), 9, 4),
+            daysT: new Wheel(document.getElementById(p + '-daysT'), 9, 4),
+            daysU: new Wheel(document.getElementById(p + '-daysU'), 9, 4),
+            ht:    new Wheel(document.getElementById(p + '-ht'),    2, 6),
+            hu:    new Wheel(document.getElementById(p + '-hu'),    9, 4),
+            mt:    new Wheel(document.getElementById(p + '-mt'),    5, 6),
+            mu:    new Wheel(document.getElementById(p + '-mu'),    9, 4),
+            st:    new Wheel(document.getElementById(p + '-st'),    5, 6),
+            su:    new Wheel(document.getElementById(p + '-su'),    9, 4)
         };
     }
 
@@ -556,15 +584,6 @@
         if (newEvent) {
             this.titleEl.textContent = newEvent.title;
             this.el.style.display = '';
-            
-            // FIX d'alineació: Calculem els dies exactes en el moment d'assignar.
-            // Això crea un calaix d'amplada justa (ex: si falten 5 dies fa un caixó d'1 xifra;
-            // si en falten 120, en fa un de 3). Abans pre-ocupava sempre espai per a 3 ("999"), desquadrant-ho tot.
-            var diff = Math.max(0, this.event.date.getTime() - Date.now());
-            var totalSeconds = Math.floor(diff / 1000);
-            var days = Math.min(Math.floor(totalSeconds / 86400), 999);
-            this.wheels.days = new Wheel(document.getElementById(this.p + '-days'), Math.max(days, 0), 1);
-            
             this._writeWheels(false);
         } else {
             this.titleEl.textContent = '';
@@ -577,13 +596,20 @@
         if (!this.event) return;
         var diff = Math.max(0, this.event.date.getTime() - Date.now());
         var totalSeconds = Math.floor(diff / 1000);
+
         var days    = Math.min(Math.floor(totalSeconds / 86400), 999);
         var hours   = Math.floor((totalSeconds % 86400) / 3600);
         var minutes = Math.floor((totalSeconds % 3600) / 60);
         var seconds = totalSeconds % 60;
 
-        if (this.wheels.days) this.wheels.days.set(days, animate);
-        
+        var dH = Math.floor(days / 100) % 10;
+        var dT = Math.floor(days / 10) % 10;
+        var dU = days % 10;
+
+        this.wheels.daysH.set(dH, animate);
+        this.wheels.daysT.set(dT, animate);
+        this.wheels.daysU.set(dU, animate);
+
         this.wheels.ht.set(Math.floor(hours / 10), animate);
         this.wheels.hu.set(hours % 10, animate);
         this.wheels.mt.set(Math.floor(minutes / 10), animate);
@@ -609,9 +635,6 @@
 
     refreshSlots(false);
 
-    /* =========================================================
-       7. MOSTRAR LA SECCIÓ EN FER SCROLL
-       ========================================================= */
     var scrollSection = document.getElementById('scroll-section');
     var sectionVisible = false;
 
@@ -628,9 +651,6 @@
     window.addEventListener('resize', checkScroll, { passive: true });
     checkScroll();
 
-    /* =========================================================
-       8. BUCLE D'ACTUALITZACIÓ
-       ========================================================= */
     var tickTimer = null;
 
     function scheduleTick() {
