@@ -3,165 +3,264 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quan queda de cole?</title>
-<script src="https://cdn.tailwindcss.com"></script>
+<title>Comptador Dies de Cole · Virolai</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
 <style>
-    :root {
-        --bg: #f5f4f3;
-        --fg: #000000;
-        --btn-bg: rgba(0, 0, 0, 0.06);
-        --btn-bg-hover: rgba(0, 0, 0, 0.14);
-    }
-    body.alt {
-        --bg: #121212;
-        --fg: #f5f4f3;
-        --btn-bg: rgba(255, 255, 255, 0.10);
-        --btn-bg-hover: rgba(255, 255, 255, 0.20);
-    }
+*, *::before, *::after { box-sizing: border-box; }
 
-    html, body { margin: 0; padding: 0; }
+:root {
+    --bg: #f5f4f3;
+    --fg: #000000;
+    --btn-bg: rgba(0, 0, 0, 0.06);
+    --btn-bg-hover: rgba(0, 0, 0, 0.14);
+}
+body.alt {
+    --bg: #121212;
+    --fg: #f5f4f3;
+    --btn-bg: rgba(255, 255, 255, 0.10);
+    --btn-bg-hover: rgba(255, 255, 255, 0.20);
+}
 
-    body {
-        background-color: var(--bg);
-        color: var(--fg);
-        transition: background-color .5s ease, color .5s ease;
-    }
+html, body { margin: 0; padding: 0; width: 100%; }
 
-    .font-bebas { font-family: 'Bebas Neue', 'Arial Narrow', sans-serif; }
+body {
+    background-color: var(--bg);
+    color: var(--fg);
+    transition: background-color .5s ease, color .5s ease;
+    position: relative;
+    overflow-x: hidden;
+    font-family: system-ui, -apple-system, sans-serif;
+}
 
-    .number-wheel {
-        display: inline-flex;
-        justify-content: center;
-        align-items: flex-start;
-        overflow: hidden;
-        height: 1em;
-        line-height: 1em;
-        vertical-align: baseline;
-        position: relative;
-        flex-shrink: 0;
-        transition: width .2s ease;
-    }
-    .wheel-mask {
-        -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
-        mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
-        flex-shrink: 0;
-    }
-    .number-track {
-        display: flex;
-        flex-direction: column;
-        flex-shrink: 0;
-        backface-visibility: hidden;
-    }
-    .number-track > span {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        height: 1em;
-        min-height: 1em;
-        max-height: 1em;
-        line-height: 1em;
-        flex: 0 0 1em;
-        white-space: nowrap;
-    }
+/* ==== ORBE (petita, menys blur = menys RAM GPU) ==== */
+.floating-orb {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+                rgba(255, 20, 147, 0.55) 0%,
+                rgba(255, 80, 0, 0.35) 45%,
+                rgba(255, 180, 0, 0.12) 72%,
+                transparent 90%);
+    filter: blur(30px);
+    pointer-events: none;
+    z-index: 0;
+    transform: translate3d(0, 0, 0);
+    will-change: transform;
+    contain: strict;
+}
 
+/* ==== THEME BUTTON (sense backdrop-filter) ==== */
+#theme-icon {
+    position: fixed;
+    top: 1.25rem;
+    right: 1.25rem;
+    z-index: 50;
+    padding: 0.5rem;
+    border-radius: 9999px;
+    border: none;
+    background-color: var(--btn-bg);
+    color: var(--fg);
+    cursor: pointer;
+    transition: opacity .5s ease, background-color .2s ease;
+    opacity: 0;
+    pointer-events: none;
+}
+#theme-icon:hover { background-color: var(--btn-bg-hover); }
+#theme-icon.visible { opacity: 1; pointer-events: auto; }
+#theme-icon svg { display: block; }
+
+/* ==== MAIN ==== */
+.main-wrap {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.main-container {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
+    font-size: 13vw;
+    letter-spacing: -0.05em;
+    line-height: 1;
+    padding: 0 1rem;
+    flex-shrink: 0;
+}
+@media (min-width: 768px) {
+    .main-container { font-size: 10vw; }
+}
+
+.group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.group-label {
+    font-size: 2.2vw;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    margin-top: 0.5rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+}
+@media (min-width: 768px) {
+    .group-label { font-size: 1vw; }
+}
+
+/* ==== WHEELS ==== */
+.wheel-mask {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0%, #000 12%, #000 88%, transparent 100%);
+    flex-shrink: 0;
+}
+
+.number-wheel {
+    display: inline-flex;
+    justify-content: center;
+    align-items: flex-start;
+    overflow: hidden;
+    height: 1em;
+    line-height: 1em;
+    vertical-align: baseline;
+    position: relative;
+    flex-shrink: 0;
+    contain: layout paint;
+}
+
+.number-track {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    backface-visibility: hidden;
+}
+
+.number-track > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 1em;
+    min-height: 1em;
+    max-height: 1em;
+    line-height: 1em;
+    flex: 0 0 1em;
+    white-space: nowrap;
+}
+
+.colon {
+    font-size: 0.22em;
+    opacity: 0.5;
+    line-height: 1;
+    align-self: center;
+    user-select: none;
+    margin-left: 0.2em;
+    margin-right: 0.2em;
+    transform: translateY(calc(-1.3vw - 0.25rem));
+}
+@media (min-width: 768px) {
     .colon {
-        font-size: 0.22em;
-        opacity: 0.5;
-        line-height: 1;
-        align-self: center;
-        user-select: none;
-        margin-left: 0.2em;
-        margin-right: 0.2em;
-        transform: translateY(calc(-1.3vw - 0.25rem));
+        margin-left: 0.25em;
+        margin-right: 0.25em;
+        transform: translateY(calc(-0.6vw - 0.25rem));
     }
-    @media (min-width: 768px) {
-        .colon {
-            margin-left: 0.25em;
-            margin-right: 0.25em;
-            transform: translateY(calc(-0.6vw - 0.25rem));
-        }
-    }
+}
 
-    .floating-orb {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 420px;
-        height: 420px;
-        border-radius: 50%;
-        background: radial-gradient(circle,
-                    rgba(255, 20, 147, 0.55) 0%,
-                    rgba(255, 80, 0, 0.35) 45%,
-                    rgba(255, 180, 0, 0.12) 72%,
-                    transparent 90%);
-        filter: blur(80px);
-        pointer-events: none;
-        z-index: 0;
-        will-change: transform;
-    }
+/* ==== SCROLL SECTION ==== */
+#scroll-section {
+    position: relative;
+    z-index: 10;
+    width: 100%;
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 4rem 1rem 6rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .8s ease;
+}
+#scroll-section.visible { opacity: 1; pointer-events: auto; }
 
-    #theme-icon {
-        background-color: var(--btn-bg);
-        color: var(--fg);
-    }
-    #theme-icon:hover { background-color: var(--btn-bg-hover); }
-    #theme-icon svg { display: block; }
+#small-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 3.5rem 2rem;
+}
+@media (min-width: 768px) {
+    #small-grid { grid-template-columns: repeat(3, 1fr); }
+}
 
-    #scroll-section {
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity .8s ease;
-    }
-    #scroll-section.visible {
-        opacity: 1;
-        pointer-events: auto;
-    }
+.slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    content-visibility: auto;
+    contain-intrinsic-size: 0 8rem;
+}
 
-    .small-countdown-wrap {
-        font-size: clamp(1.5rem, 2.6vw, 2.4rem);
-    }
-    .small-group {
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex-shrink: 0;
-    }
-    .small-title {
-        font-size: 0.72rem;
-        letter-spacing: 0.18em;
-        text-transform: uppercase;
-        opacity: 0.7;
-        margin-bottom: 0.7rem;
-        font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
-        font-weight: 700;
-        text-align: center;
-        min-height: 1.2em;
-    }
-    /* Colon petit: més gran i centrat amb els dígits */
-    .small-colon {
-        font-size: 0.5em;
-        opacity: 0.55;
-        line-height: 1;
-        align-self: center;
-        user-select: none;
-        margin-left: 0.2em;
-        margin-right: 0.2em;
-        transform: translateY(-0.05em);
-    }
+.small-title {
+    font-size: 0.72rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 0.7rem;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+    text-align: center;
+    min-height: 1.2em;
+}
+
+.small-countdown-wrap {
+    font-size: clamp(1.5rem, 2.6vw, 2.4rem);
+    font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
+    letter-spacing: -0.05em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.small-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.small-colon {
+    font-size: 0.5em;
+    opacity: 0.55;
+    line-height: 1;
+    align-self: center;
+    user-select: none;
+    margin-left: 0.2em;
+    margin-right: 0.2em;
+    transform: translateY(-0.05em);
+}
 </style>
 </head>
 <body class="w-full relative">
 
     <div id="glowing-orb" class="floating-orb"></div>
 
-    <button id="theme-icon"
-            aria-label="Canviar tema"
-            class="fixed top-5 right-5 z-50 p-2 rounded-full backdrop-blur-sm cursor-pointer
-                   transition-opacity duration-500 opacity-0 pointer-events-none">
+    <button id="theme-icon" aria-label="Canviar tema">
         <svg id="icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
              viewBox="0 0 24 24" fill="none" stroke="currentColor"
              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -176,55 +275,43 @@
         </svg>
     </button>
 
-    <div class="relative z-10 w-full min-h-screen flex flex-col items-center justify-center select-none">
-        <div id="main-container"
-             class="flex flex-wrap items-center justify-center font-bebas
-                    text-[13vw] md:text-[10vw] tracking-tighter leading-none px-4 flex-shrink-0">
-
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="wheel-mask flex items-center justify-center">
-                    <div class="number-wheel">
-                        <div class="number-track" id="days-track"></div>
-                    </div>
+    <div class="main-wrap">
+        <div class="main-container">
+            <div class="group">
+                <div class="wheel-mask">
+                    <div class="number-wheel"><div class="number-track" id="days-track"></div></div>
                 </div>
-                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">DIES</span>
+                <span class="group-label">DIES</span>
             </div>
-
             <span class="colon">:</span>
-
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="wheel-mask flex items-center justify-center">
+            <div class="group">
+                <div class="wheel-mask">
                     <div class="number-wheel"><div class="number-track" id="hours-tens-track"></div></div>
                     <div class="number-wheel"><div class="number-track" id="hours-units-track"></div></div>
                 </div>
-                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">HORES</span>
+                <span class="group-label">HORES</span>
             </div>
-
             <span class="colon">:</span>
-
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="wheel-mask flex items-center justify-center">
+            <div class="group">
+                <div class="wheel-mask">
                     <div class="number-wheel"><div class="number-track" id="mins-tens-track"></div></div>
                     <div class="number-wheel"><div class="number-track" id="mins-units-track"></div></div>
                 </div>
-                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">MINUTS</span>
+                <span class="group-label">MINUTS</span>
             </div>
-
             <span class="colon">:</span>
-
-            <div class="flex flex-col items-center flex-shrink-0">
-                <div class="wheel-mask flex items-center justify-center">
+            <div class="group">
+                <div class="wheel-mask">
                     <div class="number-wheel"><div class="number-track" id="secs-tens-track"></div></div>
                     <div class="number-wheel"><div class="number-track" id="secs-units-track"></div></div>
                 </div>
-                <span class="text-[2.2vw] md:text-[1vw] tracking-widest uppercase opacity-50 mt-2 font-sans font-bold">SEGONS</span>
+                <span class="group-label">SEGONS</span>
             </div>
-
         </div>
     </div>
 
-    <section id="scroll-section" class="relative z-10 w-full max-w-6xl mx-auto px-4 pt-16 pb-24">
-        <div id="small-grid" class="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-14"></div>
+    <section id="scroll-section">
+        <div id="small-grid"></div>
     </section>
 
 <script>
@@ -234,19 +321,29 @@
     var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var allWheels = [];
 
+    /* =========================================================
+       1. ORBE ANIMADA (30fps, no 60)
+       ========================================================= */
     var orb = document.getElementById('glowing-orb');
     var orbRunning = !reduceMotion;
+    var lastOrbFrame = 0;
 
-    function animateOrb() {
+    function animateOrb(now) {
         if (!orbRunning) return;
-        var t = Date.now() * 0.0006;
-        var x = window.innerWidth  / 2 + Math.sin(t * 0.8) * window.innerWidth  * 0.38;
-        var y = window.innerHeight / 2 + Math.cos(t * 0.5) * window.innerHeight * 0.32;
-        orb.style.transform = 'translate3d(' + (x - 210) + 'px,' + (y - 210) + 'px,0)';
+        if (now - lastOrbFrame > 33) {
+            var t = now * 0.0006;
+            var x = window.innerWidth  / 2 + Math.sin(t * 0.8) * window.innerWidth  * 0.38;
+            var y = window.innerHeight / 2 + Math.cos(t * 0.5) * window.innerHeight * 0.32;
+            orb.style.transform = 'translate3d(' + (x - 160) + 'px,' + (y - 160) + 'px,0)';
+            lastOrbFrame = now;
+        }
         requestAnimationFrame(animateOrb);
     }
     if (orbRunning) requestAnimationFrame(animateOrb);
 
+    /* =========================================================
+       2. ICONA DE TEMA
+       ========================================================= */
     var themeIcon = document.getElementById('theme-icon');
     var iconSun   = document.getElementById('icon-sun');
     var iconMoon  = document.getElementById('icon-moon');
@@ -258,12 +355,10 @@
         iconMoon.style.display = isDark ? 'block' : 'none';
     }
     function revealIcon() {
-        themeIcon.classList.remove('opacity-0', 'pointer-events-none');
-        themeIcon.classList.add('opacity-100');
+        themeIcon.classList.add('visible');
         clearTimeout(hideTimer);
         hideTimer = setTimeout(function () {
-            themeIcon.classList.add('opacity-0', 'pointer-events-none');
-            themeIcon.classList.remove('opacity-100');
+            themeIcon.classList.remove('visible');
         }, 2200);
     }
     document.addEventListener('mousemove', revealIcon, { passive: true });
@@ -275,6 +370,9 @@
     });
     updateThemeIcon();
 
+    /* =========================================================
+       3. RODET NUMÈRIC (repeats=3 = mínim segur per recentrar)
+       ========================================================= */
     var TRANSITION = 'transform .55s cubic-bezier(.22, 1, .36, 1)';
     var digitWidthCache = {};
     var measureCanvas = document.createElement('canvas');
@@ -294,7 +392,7 @@
         this.track     = trackEl;
         this.maxDigit  = maxDigit;
         this.L         = maxDigit + 1;
-        this.repeats   = repeats || 4;
+        this.repeats   = repeats || 3;
         this.total     = this.L * this.repeats;
         this.pos       = 0;
         this.digit     = null;
@@ -375,18 +473,21 @@
         resizeTimer = setTimeout(function () {
             digitWidthCache = {};
             for (var i = 0; i < allWheels.length; i++) allWheels[i].remeasure();
-        }, 120);
+        }, 150);
     }, { passive: true });
 
+    /* =========================================================
+       4. COMPTE PRINCIPAL
+       ========================================================= */
     var MAIN_TARGET = new Date(2027, 5, 18, 15, 0, 0).getTime();
 
     var daysTrackEl = document.getElementById('days-track');
-    var hTensWheel  = new Wheel(document.getElementById('hours-tens-track'),  2, 6);
-    var hUnitsWheel = new Wheel(document.getElementById('hours-units-track'), 9, 4);
-    var mTensWheel  = new Wheel(document.getElementById('mins-tens-track'),   5, 6);
-    var mUnitsWheel = new Wheel(document.getElementById('mins-units-track'),  9, 4);
-    var sTensWheel  = new Wheel(document.getElementById('secs-tens-track'),   5, 6);
-    var sUnitsWheel = new Wheel(document.getElementById('secs-units-track'),  9, 4);
+    var hTensWheel  = new Wheel(document.getElementById('hours-tens-track'),  2, 4);
+    var hUnitsWheel = new Wheel(document.getElementById('hours-units-track'), 9, 3);
+    var mTensWheel  = new Wheel(document.getElementById('mins-tens-track'),   5, 4);
+    var mUnitsWheel = new Wheel(document.getElementById('mins-units-track'),  9, 3);
+    var sTensWheel  = new Wheel(document.getElementById('secs-tens-track'),   5, 4);
+    var sUnitsWheel = new Wheel(document.getElementById('secs-units-track'),  9, 3);
     var daysWheel = null;
 
     function updateMain(animate) {
@@ -409,6 +510,9 @@
     }
     updateMain(false);
 
+    /* =========================================================
+       5. GENERACIÓ D'ESDEVENIMENTS (només 6 anys en lloc de 17)
+       ========================================================= */
     function easter(year) {
         var a = year % 19;
         var b = Math.floor(year / 100);
@@ -440,8 +544,8 @@
         }
 
         var thisYear = new Date().getFullYear();
-        var startYear = thisYear - 1;
-        var endYear = thisYear + 15;
+        var startYear = thisYear;
+        var endYear = thisYear + 5;
 
         for (var y = startYear; y <= endYear; y++) {
             var e = easter(y);
@@ -452,23 +556,22 @@
             push(new Date(y, 10, 1), 'Tots Sants');
             push(new Date(y, 11, 6), 'Dia de la Constitució');
             push(new Date(y, 11, 8), 'La Immaculada');
+            push(new Date(y, 11, 24), 'Nit de Nadal');
+            push(new Date(y, 11, 25), 'Nadal');
+            push(new Date(y, 11, 26), 'Sant Esteve');
+            push(new Date(y, 11, 31), 'Nit de Cap d\'Any');
 
             push(new Date(y + 1, 0, 1), 'Cap d\'Any');
             push(new Date(y + 1, 0, 6), 'Dia de Reis');
             push(addDays(e, -47), 'Carnaval');
             push(addDays(e, -3),  'Dijous Sant');
             push(addDays(e, -2),  'Divendres Sant');
-
             push(addDays(e, 1),   'Dilluns de Pasqua');
-            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)');
             push(addDays(e, 50),  '2a Pasqua (Pentecosta)');
+
+            push(new Date(y, 4, 1),  '1 de Maig (Dia del Treballador)');
             push(new Date(y, 5, 23), 'Revetlla de Sant Joan');
             push(new Date(y, 5, 24), 'Sant Joan');
-
-            push(new Date(y, 11, 24), 'Nit de Nadal');
-            push(new Date(y, 11, 25), 'Nadal');
-            push(new Date(y, 11, 26), 'Sant Esteve');
-            push(new Date(y, 11, 31), 'Nit de Cap d\'Any');
 
             push(new Date(y, 8, 8), 'Tornada a l\'escola');
             var fi1r = new Date(y, 11, 22);
@@ -480,8 +583,8 @@
             var fi2n = addDays(palm, -2);
             push(fi2n,              'Últim dia abans de Setmana Santa');
             push(addDays(fi2n, 1),  'Vacances de Setmana Santa');
-
             push(addDays(easter(y + 1), 2), 'Tornada de Setmana Santa');
+
             var fiCurs = new Date(y + 1, 5, 20);
             push(fiCurs,            'Últim dia de classe');
             push(addDays(fiCurs, 1),'Vacances d\'estiu');
@@ -523,42 +626,59 @@
         return cachedNext;
     }
 
+    /* =========================================================
+       6. SLOTS (repeats=3, mínim per recentrar)
+       ========================================================= */
     var NUM_SLOTS = 12;
     var slots = [];
     var grid = document.getElementById('small-grid');
+    var visibleSlots = new Set();
+
+    var slotObserver = new IntersectionObserver(function (entries) {
+        for (var i = 0; i < entries.length; i++) {
+            var entry = entries[i];
+            var idx = parseInt(entry.target.dataset.slotIdx, 10);
+            if (entry.isIntersecting) {
+                visibleSlots.add(idx);
+                /* Quan entra a la vista, actualitzem immediatament */
+                if (slots[idx] && slots[idx].event) {
+                    slots[idx].tick(true);
+                }
+            } else {
+                visibleSlots.delete(idx);
+            }
+        }
+    }, { rootMargin: '200px' });
 
     function buildGroupHTML(prefix, wheels) {
-        var html = '<div class="small-group">';
-        html += '<div class="wheel-mask flex items-center justify-center">';
-        wheels.forEach(function (w) {
-            html += '<div class="number-wheel">' +
-                    '<div class="number-track" id="' + prefix + '-' + w + '"></div>' +
-                    '</div>';
-        });
-        html += '</div>';
-        html += '</div>';
+        var html = '<div class="small-group"><div class="wheel-mask">';
+        for (var i = 0; i < wheels.length; i++) {
+            html += '<div class="number-wheel"><div class="number-track" id="' +
+                    prefix + '-' + wheels[i] + '"></div></div>';
+        }
+        html += '</div></div>';
         return html;
     }
 
     function buildSlotHTML(idx) {
         var p = 'slot-' + idx;
-        return '' +
-            '<h3 id="' + p + '-title" class="small-title"></h3>' +
-            '<div class="small-countdown-wrap font-bebas tracking-tighter flex items-center justify-center">' +
-                buildGroupHTML(p, ['daysH','daysT','daysU']) +
-                '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, ['ht','hu']) +
-                '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, ['mt','mu']) +
-                '<span class="small-colon">:</span>' +
-                buildGroupHTML(p, ['st','su']) +
-            '</div>';
+        return '<h3 id="' + p + '-title" class="small-title"></h3>' +
+               '<div class="small-countdown-wrap">' +
+                   buildGroupHTML(p, ['daysH','daysT','daysU']) +
+                   '<span class="small-colon">:</span>' +
+                   buildGroupHTML(p, ['ht','hu']) +
+                   '<span class="small-colon">:</span>' +
+                   buildGroupHTML(p, ['mt','mu']) +
+                   '<span class="small-colon">:</span>' +
+                   buildGroupHTML(p, ['st','su']) +
+               '</div>';
     }
 
     function Slot(idx) {
         this.idx = idx;
         var wrapper = document.createElement('div');
-        wrapper.className = 'flex flex-col items-center';
+        wrapper.className = 'slot';
+        wrapper.dataset.slotIdx = String(idx);
         wrapper.innerHTML = buildSlotHTML(idx);
         grid.appendChild(wrapper);
         this.el = wrapper;
@@ -566,16 +686,17 @@
         this.event = null;
         var p = 'slot-' + idx;
         this.wheels = {
-            daysH: new Wheel(document.getElementById(p + '-daysH'), 9, 4),
-            daysT: new Wheel(document.getElementById(p + '-daysT'), 9, 4),
-            daysU: new Wheel(document.getElementById(p + '-daysU'), 9, 4),
-            ht:    new Wheel(document.getElementById(p + '-ht'),    2, 6),
-            hu:    new Wheel(document.getElementById(p + '-hu'),    9, 4),
-            mt:    new Wheel(document.getElementById(p + '-mt'),    5, 6),
-            mu:    new Wheel(document.getElementById(p + '-mu'),    9, 4),
-            st:    new Wheel(document.getElementById(p + '-st'),    5, 6),
-            su:    new Wheel(document.getElementById(p + '-su'),    9, 4)
+            daysH: new Wheel(document.getElementById(p + '-daysH'), 9, 3),
+            daysT: new Wheel(document.getElementById(p + '-daysT'), 9, 3),
+            daysU: new Wheel(document.getElementById(p + '-daysU'), 9, 3),
+            ht:    new Wheel(document.getElementById(p + '-ht'),    2, 4),
+            hu:    new Wheel(document.getElementById(p + '-hu'),    9, 3),
+            mt:    new Wheel(document.getElementById(p + '-mt'),    5, 4),
+            mu:    new Wheel(document.getElementById(p + '-mu'),    9, 3),
+            st:    new Wheel(document.getElementById(p + '-st'),    5, 4),
+            su:    new Wheel(document.getElementById(p + '-su'),    9, 3)
         };
+        slotObserver.observe(wrapper);
     }
 
     Slot.prototype.assign = function (newEvent) {
@@ -602,20 +723,16 @@
         var minutes = Math.floor((totalSeconds % 3600) / 60);
         var seconds = totalSeconds % 60;
 
-        var dH = Math.floor(days / 100) % 10;
-        var dT = Math.floor(days / 10) % 10;
-        var dU = days % 10;
-
-        this.wheels.daysH.set(dH, animate);
-        this.wheels.daysT.set(dT, animate);
-        this.wheels.daysU.set(dU, animate);
-
-        this.wheels.ht.set(Math.floor(hours / 10), animate);
-        this.wheels.hu.set(hours % 10, animate);
-        this.wheels.mt.set(Math.floor(minutes / 10), animate);
-        this.wheels.mu.set(minutes % 10, animate);
-        this.wheels.st.set(Math.floor(seconds / 10), animate);
-        this.wheels.su.set(seconds % 10, animate);
+        var w = this.wheels;
+        w.daysH.set(Math.floor(days / 100) % 10, animate);
+        w.daysT.set(Math.floor(days / 10) % 10, animate);
+        w.daysU.set(days % 10, animate);
+        w.ht.set(Math.floor(hours / 10), animate);
+        w.hu.set(hours % 10, animate);
+        w.mt.set(Math.floor(minutes / 10), animate);
+        w.mu.set(minutes % 10, animate);
+        w.st.set(Math.floor(seconds / 10), animate);
+        w.su.set(seconds % 10, animate);
     };
 
     Slot.prototype.tick = function (animate) {
@@ -628,13 +745,19 @@
         var next = getNextEvents(NUM_SLOTS);
         for (var i = 0; i < NUM_SLOTS; i++) {
             var ev = next[i] || null;
-            slots[i].assign(ev);
-            if (ev) slots[i].tick(animate);
+            var changed = slots[i].assign(ev);
+            /* Només actualitzem si és visible o acaba de canviar */
+            if (ev && (changed || visibleSlots.has(i))) {
+                slots[i].tick(animate);
+            }
         }
     }
 
     refreshSlots(false);
 
+    /* =========================================================
+       7. SCROLL SECTION
+       ========================================================= */
     var scrollSection = document.getElementById('scroll-section');
     var sectionVisible = false;
 
@@ -643,7 +766,8 @@
         var isVis = rect.top < window.innerHeight * 0.9;
         if (isVis !== sectionVisible) {
             sectionVisible = isVis;
-            scrollSection.classList.toggle('visible', isVis);
+            if (isVis) scrollSection.classList.add('visible');
+            else scrollSection.classList.remove('visible');
             if (isVis) refreshSlots(false);
         }
     }
@@ -651,6 +775,9 @@
     window.addEventListener('resize', checkScroll, { passive: true });
     checkScroll();
 
+    /* =========================================================
+       8. BUCLE D'ACTUALITZACIÓ
+       ========================================================= */
     var tickTimer = null;
 
     function scheduleTick() {
